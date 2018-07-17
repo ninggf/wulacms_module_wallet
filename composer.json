@@ -1,0 +1,25 @@
+{
+  "name": "wulacms/wallet",
+  "description": "管理会员的充值，提现，消费，转账等等功能。支持多币种（法币，积分，代币等），具体见说明文档。",
+  "type": "wula-module",
+  "require": {
+	"wula/wula-installer": "^2.0",
+	"ext-bcmath": "*"
+  },
+  "license": "MIT",
+  "authors": [
+	{
+	  "name": "Leo Ning",
+	  "email": "windywany@gmail.com"
+	}
+  ],
+  "extra": {
+	"branch-alias": {
+	  "dev-master": "1.0-dev"
+	}
+  },
+  "support": {
+	"issues": "https://github.com/ninggf/wulacms_module_wallet/issues"
+  },
+  "homepage": "https://www.wulacms.com/modules/wallet"
+}
