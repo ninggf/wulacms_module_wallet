@@ -19,8 +19,6 @@ class Currency implements \ArrayAccess {
 	protected        $realdec;//
 	protected        $scale = 6;//最大面值数位精度
 	protected        $myConf;
-	/** @var \wallet\classes\Wallet */
-	protected $wallet;
 
 	/**
 	 * @param string $currency
@@ -28,14 +26,19 @@ class Currency implements \ArrayAccess {
 	 * @return null|\wallet\classes\Currency
 	 */
 	public static function init(string $currency): ?Currency {
+		static $currencies = [];
+		if (isset($currencies[ $currency ])) {
+			return $currencies[ $currency ];
+		}
 		if (!self::$currencyConf) {
 			self::$currencyConf = ConfigurationLoader::loadFromFile('currency')->toArray();
 		}
 		if (!isset(self::$currencyConf[ $currency ])) {
 			return null;
 		}
+		$currencies[ $currency ] = new Currency($currency, self::$currencyConf[ $currency ]);
 
-		return new Currency($currency, self::$currencyConf[ $currency ]);
+		return $currencies[ $currency ];
 	}
 
 	/**
@@ -114,7 +117,7 @@ class Currency implements \ArrayAccess {
 	 *
 	 * @return null|string
 	 */
-	public function exchangeTo(Currency $currency, string $amount): ?string {
+	public function exchangeAmount(Currency $currency, string $amount): ?string {
 		$fromId = 'from' . $this->id;
 		$froms  = $currency['types'];
 		if ($this->myConf['rate'] > 0 && $currency->myConf['rate'] > 0 && isset($froms[ $fromId ])) {
@@ -123,24 +126,6 @@ class Currency implements \ArrayAccess {
 		}
 
 		return null;
-	}
-
-	/**
-	 * 设置对应账户ID
-	 *
-	 * @param Wallet $wallet
-	 */
-	public function setWallet(Wallet $wallet) {
-		$this->wallet = $wallet;
-	}
-
-	/**
-	 * 获取当前币种绑定到的钱包.
-	 *
-	 * @return null|\wallet\classes\Wallet
-	 */
-	public function getWallet(): ?Wallet {
-		return $this->wallet;
 	}
 
 	public function offsetExists($offset) {

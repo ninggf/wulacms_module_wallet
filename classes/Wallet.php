@@ -28,6 +28,7 @@ use wulaphp\io\Request;
 class Wallet {
 	/**@var Configuration */
 	protected static $walletConf;
+	protected static $subjects;
 	protected        $uid;
 	/**@var DatabaseConnection */
 	protected $walletdb;
@@ -60,7 +61,21 @@ class Wallet {
 		static $wallets = [];
 		if (self::$walletConf === null) {
 			self::$walletConf = ConfigurationLoader::loadFromFile('wallet');
-
+			$subjects         = self::$walletConf['subjects'] ?? [];
+			if (!is_array($subjects)) {
+				$subjects = [];
+			}
+			self::$subjects = array_merge([
+				'despoit'  => [
+					'name' => '充值'
+				],
+				'withdraw' => [
+					'name' => '提现'
+				],
+				'exchange' => [
+					'name' => '兑换'
+				]
+			], $subjects);
 		}
 
 		if (!isset($wallets[ $userid ])) {
@@ -98,14 +113,10 @@ class Wallet {
 			$rst = $this->walletdb->trans(function (DatabaseConnection $db) use ($curr, $currency) {
 				$account = $db->queryOne('SELECT user_id FROM {wallet} WHERE user_id=%d AND currency=%s', $this->uid, $currency);
 				if ($account) {
-					$curr->setWallet($this);
-
 					return true;
 				} else {
 					$rst = $db->cudx('INSERT INTO {wallet} (user_id,currency) VALUES (%d,%s)', $this->uid, $currency);
 					if ($rst) {
-						$curr->setWallet($this);
-
 						return true;
 					}
 					throw new \Exception('Cannot create ' . $currency . ' wallet account for user ' . $this->uid);
@@ -114,6 +125,8 @@ class Wallet {
 
 			if ($rst) {
 				return $curr;
+			} else if ($err) {
+				log_error('error occurred while opening current:' . $err, 'wallet');
 			}
 		}
 
@@ -143,6 +156,7 @@ class Wallet {
 		//检查主题
 		if (!preg_match('/^[a-z][\w\d\-_]{0,15}$/i', $subject)) throw new WalletException('subject格式不正确:' . $subject);
 		if (!preg_match('/^[a-z0-9][a-z\d\-_]{0,47}$/i', $subject)) throw new WalletException('subjectid格式不正确:' . $subjectid);
+		if (!isset(self::$subjects[ $subject ])) throw new WalletException('未定义的主题:' . $subject);
 
 		try {
 			if (!$this->walletdb->start()) {
@@ -220,6 +234,7 @@ class Wallet {
 		//检查主题
 		if (!preg_match('/^[a-z][\w\d\-_]{0,15}$/i', $subject)) throw new WalletException('subject格式不正确:' . $subject);
 		if (!preg_match('/^[a-z0-9][a-z\d\-_]{0,47}$/i', $subject)) throw new WalletException('subjectid格式不正确:' . $subjectid);
+		if (!isset(self::$subjects[ $subject ])) throw new WalletException('未定义的主题:' . $subject);
 		try {
 			if (!$this->walletdb->start()) {
 				return false;
@@ -250,7 +265,7 @@ class Wallet {
 				$rbalance1 = null;//可提现金额无需修改
 			} else {
 				$rbalance  = imv('balance - ' . $balance);//没的剩
-				$rbalance1 = imv('balance1 - ' . abs($sub));
+				$rbalance1 = imv('balance1 - ' . bcmul($sub, '-1', 0));
 			}
 			$outlay['id']          = $this->generateOutlayId($currency);
 			$outlay['user_id']     = $this->uid;
@@ -312,7 +327,7 @@ class Wallet {
 		//转换到最小面值单位
 		$ramount = $currency->toUint($amount);
 		if ($ramount === null) throw new WalletException('提现金额不正确:' . $amount);
-
+		if (!isset(self::$subjects['withdraw'])) throw new WalletException('未定义的主题:withdraw');
 		try {
 			if (!$this->walletdb->start()) {
 				return null;
@@ -546,10 +561,11 @@ class Wallet {
 	 * @throws
 	 */
 	public function exchange(Currency $currencyForm, Currency $currencyTo, string $amount, float $discount = 1): ?string {
-		$ramount = $currencyForm->exchangeTo($currencyTo, $amount);
+		$ramount = $currencyForm->exchangeAmount($currencyTo, $amount);
 		if (!$ramount || $discount > 1 || $discount <= 0) {
 			return null;
 		}
+		if (!isset(self::$subjects['exchange'])) throw new WalletException('未定义的主题:exchange');
 		try {
 			if (!$this->walletdb->start()) {
 				return null;
@@ -688,6 +704,7 @@ class Wallet {
 		//转换到最小面值单位
 		$ramount = $currency->toUint($amount);
 		if ($ramount === null) throw new WalletException('充值金额不正确:' . $amount);
+		if (!isset(self::$subjects['deposit'])) throw new WalletException('未定义的主题:deposit');
 		$data['user_id']     = $this->uid;
 		$data['currency']    = $currency['id'];
 		$data['amount']      = $ramount;
@@ -780,7 +797,7 @@ class Wallet {
 			}
 
 			//添加收入记录
-			$rst = $this->deposit($currency, $amount, 'deposit', 'desposit', $depositId);
+			$rst = $this->deposit($currency, $amount, 'deposit', 'deposit', $depositId);
 			if (!$rst) {
 				throw new WalletException('无法添加收入记录');
 			}

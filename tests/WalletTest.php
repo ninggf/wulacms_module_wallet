@@ -63,6 +63,38 @@ class WalletTest extends TestCase {
 				]//收入类型
 			]
 		]);
+		$wcfg = ConfigurationLoader::loadFromFile('wallet');
+		$wcfg->setConfigs([
+			'dbMap'    => function ($uid) {
+				//根据用户ID分库
+				return 'default';
+			},
+			'tableMap' => function ($table, $currency, $uid) {
+				//根据币种，用户ID分表
+				return $table;
+			},
+			'subjects' => [
+				'deposit'  => [
+					'name' => '充值',
+					'url'  => ''
+				],
+				'withdraw' => [
+					'name' => '提现'
+				],
+				'exchange' => [
+					'name' => '兑换'
+				],
+				'test'     => [
+					'name' => '测试'
+				],
+				'reward'   => [
+					'name' => '奖励'
+				],
+				'buy'      => [
+					'name' => '购买'
+				]
+			]
+		]);
 		$wallet   = Wallet::connect(1);
 		self::$db = $wallet->realdb();
 	}
@@ -141,11 +173,11 @@ class WalletTest extends TestCase {
 	 * @depends testOpen
 	 * @depends testOpenEth
 	 */
-	public function testExchangeTo(Currency $cur1, Currency $cur2) {
+	public function testExchangeAmount(Currency $cur1, Currency $cur2) {
 		// x = 1000eos, x = 100eth, eth = 10eos, eos=eth/10
-		$eos2eth = $cur1->exchangeTo($cur2, 1);
+		$eos2eth = $cur1->exchangeAmount($cur2, 1);
 		self::assertEquals('0.1', $cur2->fromUint($eos2eth, 1));
-		$eth2eos = $cur2->exchangeTo($cur1, 1);
+		$eth2eos = $cur2->exchangeAmount($cur1, 1);
 		self::assertEquals('10.0', $cur1->fromUint($eth2eos, 1));
 	}
 
@@ -174,6 +206,7 @@ class WalletTest extends TestCase {
 		self::assertNotNull($id, 'id is null');
 		self::assertNotNull($wallet->generateDepositId($cur, 'test'), 'abc');
 		self::assertNotNull($wallet->generateOutlayId($cur), 'def');
+		self::assertNotNull($wallet->generateExchangeId());
 	}
 
 	/**
@@ -192,6 +225,8 @@ class WalletTest extends TestCase {
 	}
 
 	/**
+	 * 测试收入
+	 *
 	 * @param $wallet
 	 * @param $cur
 	 *
@@ -199,8 +234,9 @@ class WalletTest extends TestCase {
 	 * @depends testOpen
 	 */
 	public function testDeposit(Wallet $wallet, Currency $cur) {
-		$db = $wallet->realdb();
-
+		$db     = $wallet->realdb();
+		$rst    = false;
+		$errmsg = '';
 		$db->start();
 		try {
 			$rst = $wallet->deposit($cur, 10, 'test', 'test', time());
@@ -211,6 +247,7 @@ class WalletTest extends TestCase {
 
 			$rst = $wallet->deposit($cur, 5, 'reward', 'reward', time());
 			self::assertTrue($rst);
+
 			$amount = $wallet->getBalance($cur, 3);
 			self::assertNotNull($amount);
 			self::assertEquals($cur->toUint(15), $amount);
@@ -219,14 +256,17 @@ class WalletTest extends TestCase {
 			self::assertEquals($cur->toUint(10), $balance);
 			$balance1 = $wallet->getBalance($cur, 2);
 			self::assertEquals($cur->toUint(5), $balance1);
-			$db->commit();
+			$rst = $db->commit();
 		} catch (WalletException $we) {
-			self::assertTrue(false, $we->getMessage());
+			$errmsg = $we->getMessage();
 			$db->rollback();
 		}
+		self::assertTrue($rst, $errmsg);
 	}
 
 	/**
+	 * 测试消费
+	 *
 	 * @param $wallet
 	 * @param $cur
 	 *
@@ -235,7 +275,9 @@ class WalletTest extends TestCase {
 	 * @depends testDeposit
 	 */
 	public function testOutlay(Wallet $wallet, Currency $cur) {
-		$db = $wallet->realdb();
+		$db     = $wallet->realdb();
+		$rst    = false;
+		$errmsg = '';
 		try {
 			$db->start();
 			$rst = $wallet->outlay($cur, '12', 'buy', 'buy-1');
@@ -250,9 +292,10 @@ class WalletTest extends TestCase {
 			self::assertEquals($cur->toUint('3'), $balance1);
 			$db->commit();
 		} catch (WalletException $we) {
-			self::assertTrue(true, $we->getMessage());
+			$errmsg = $we->getMessage();
 			$db->rollback();
 		}
+		self::assertTrue($rst, $errmsg);
 	}
 
 	/**
@@ -264,7 +307,9 @@ class WalletTest extends TestCase {
 	 * @depends testOutlay
 	 */
 	public function testWithdraw(Wallet $wallet, Currency $cur) {
-		$db = $wallet->realdb();
+		$db     = $wallet->realdb();
+		$rst    = false;
+		$errmsg = '';
 		try {
 			$db->start();
 			$withdrawId = $wallet->withdraw($cur, '2', '宁广丰', 'EOS', '0x012332343434');
@@ -296,10 +341,12 @@ class WalletTest extends TestCase {
 			self::assertEquals('R', $wo['status']);
 			self::assertEquals('nihao', $wo['reject_msg']);
 			$db->commit();
+			$rst = true;
 		} catch (WalletException $we) {
+			$errmsg = $we->getMessage();
 			$db->rollback();
-			self::assertTrue(true, $we->getMessage());
 		}
+		self::assertTrue($rst, $errmsg);
 	}
 
 	/**
@@ -311,7 +358,9 @@ class WalletTest extends TestCase {
 	 * @depends  testWithdraw
 	 */
 	public function testPay(Wallet $wallet, Currency $cur) {
-		$db = $wallet->realdb();
+		$db     = $wallet->realdb();
+		$rst    = false;
+		$errmsg = '';
 		try {
 			$db->start();
 			$withdrawId = $wallet->withdraw($cur, '2', '宁广丰', 'EOS', '0x012332343434');
@@ -345,11 +394,12 @@ class WalletTest extends TestCase {
 			$wo = $db->queryOne('select * from ' . $wallet->realtb('wallet_withdraw_order', $cur) . ' where id = %s', $withdrawId);
 			self::assertNotEmpty($wo);
 			self::assertEquals('D', $wo['status']);
-			$db->commit();
+			$rst = $db->commit();
 		} catch (WalletException $we) {
+			$errmsg = $we->getMessage();
 			$db->rollback();
-			self::assertTrue(true, $we->getMessage());
 		}
+		self::assertTrue($rst, $errmsg);
 	}
 
 	/**
