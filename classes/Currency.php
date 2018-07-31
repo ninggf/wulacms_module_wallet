@@ -14,10 +14,11 @@ use wulaphp\conf\ConfigurationLoader;
 
 class Currency implements \ArrayAccess {
 	protected static $currencyConf;
+	protected static $currencies = [];
 	protected        $id;
 	protected        $decimals;//精度
 	protected        $realdec;//
-	protected        $scale = 6;//最大面值数位精度
+	protected        $scale      = 6;//最大面值数位精度
 	protected        $myConf;
 
 	/**
@@ -26,9 +27,8 @@ class Currency implements \ArrayAccess {
 	 * @return null|\wallet\classes\Currency
 	 */
 	public static function init(string $currency): ?Currency {
-		static $currencies = [];
-		if (isset($currencies[ $currency ])) {
-			return $currencies[ $currency ];
+		if (isset(self::$currencies[ $currency ])) {
+			return self::$currencies[ $currency ];
 		}
 		if (!self::$currencyConf) {
 			self::$currencyConf = ConfigurationLoader::loadFromFile('currency')->toArray();
@@ -36,9 +36,26 @@ class Currency implements \ArrayAccess {
 		if (!isset(self::$currencyConf[ $currency ])) {
 			return null;
 		}
-		$currencies[ $currency ] = new Currency($currency, self::$currencyConf[ $currency ]);
+		self::$currencies[ $currency ] = new Currency($currency, self::$currencyConf[ $currency ]);
 
-		return $currencies[ $currency ];
+		return self::$currencies[ $currency ];
+	}
+
+	/**
+	 * 币种实例列表.
+	 *
+	 * @return \wallet\classes\Currency[]
+	 */
+	public static function currencies(): array {
+		if (!self::$currencyConf) {
+			self::$currencyConf = ConfigurationLoader::loadFromFile('currency')->toArray();
+		}
+
+		foreach (self::$currencyConf as $cur => $cfg) {
+			self::init($cur);
+		}
+
+		return self::$currencies;
 	}
 
 	/**
@@ -86,13 +103,11 @@ class Currency implements \ArrayAccess {
 	 *
 	 * @return string
 	 */
-	public function fromUint(string $value, int $scale = null): ?string {
+	public function fromUint(string $value, int $scale = null): string {
 		if (!$this->realdec) return $value;
-		if (!preg_match('/^(0|[1-9]\d*)$/', $value)) return null;
-
+		if (!preg_match('/^([1-9]\d*)$/', $value)) return '0';
 		$scale = $scale ?? $this->scale;
-
-		return bcdiv($value, $this->realdec, $scale);
+		return floatval(bcdiv($value, $this->realdec, $scale));
 	}
 
 	/**

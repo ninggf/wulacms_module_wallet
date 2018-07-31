@@ -659,6 +659,16 @@ class Wallet {
 	}
 
 	/**
+	 * 获取钱包账户列表
+	 * @return array
+	 */
+	public function getBalances(): array {
+		$accts = $this->walletdb->query('SELECT amount,balance,balance1,frozen FROM {wallet} WHERE user_id = %d ORDER BY currency ASC', $this->uid);
+
+		return $accts;
+	}
+
+	/**
 	 * 获取账户信息.
 	 *
 	 * @param \wallet\classes\Currency $currency
