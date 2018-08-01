@@ -107,7 +107,11 @@ class Currency implements \ArrayAccess {
 		if (!$this->realdec) return $value;
 		if (!preg_match('/^([1-9]\d*)$/', $value)) return '0';
 		$scale = $scale ?? $this->scale;
-		return floatval(bcdiv($value, $this->realdec, $scale));
+		$amount =  bcdiv($value, $this->realdec, $scale);
+		if (strpos($amount, '.') > 0) {
+			$amount = rtrim(rtrim($amount, '0'), '.');
+		}
+		return $amount;
 	}
 
 	/**
