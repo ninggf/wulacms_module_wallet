@@ -31,7 +31,7 @@ namespace wallet\controllers;
 use backend\classes\IFramePageController;
 use wallet\classes\Currency;
 use wallet\classes\model\WalletOutlayLog;
-use wulaphp\conf\ConfigurationLoader;
+use wallet\classes\Wallet;
 
 /**
  * 默认控制器.
@@ -39,33 +39,40 @@ use wulaphp\conf\ConfigurationLoader;
  */
 class OutController extends IFramePageController {
 
-	public function index($currncy='', $user_id='') {
-		$data['currency']      = $currncy;
-		$data['user_id']       = $user_id;
+	public function index($currncy = '', $user_id = '') {
+		$data['currency'] = $currncy;
+		$data['user_id']  = $user_id;
+		$data['subjects'] = Wallet::subjects();
 
 		return $this->render($data);
 	}
 
 	public function data($currency = '', $user_id = 0, $count = '') {
-		$model = new WalletOutlayLog();
+		$data = [];
 		if ($user_id) {
 			$where['user_id'] = $user_id;
 		}
 		if ($currency) {
+			$model             = new WalletOutlayLog();
 			$where['currency'] = $currency;
+			$subject           = rqst('subject');
+			if ($subject != '') {
+				$where['subject'] = $subject;
+			}
+			$query = $model->select('*')->where($where)->page()->sort();
+			$rows  = $query->toArray();
+			$total = '';
+			if ($count) {
+				$total = $query->total('id');
+			}
+			$cur = Currency::init($currency);
+			foreach ($rows as &$row) {
+				$row['amount'] = $cur->fromUint($row['amount']);
+			}
+			$data['rows']     = $rows;
+			$data['total']    = $total;
+			$data['subjects'] = Wallet::subjects();
 		}
-		$query = $model->select('*')->where($where)->page()->sort();
-		$rows  = $query->toArray();
-		$total = '';
-		if ($count) {
-			$total = $query->total('id');
-		}
-		foreach ($rows as &$row) {
-			$cur = Currency::init($row['currency']);
-			$row['amount'] = $cur->fromUint($row['amount']);
-		}
-		$data['rows']  = $rows;
-		$data['total'] = $total;
 
 		return view($data);
 	}

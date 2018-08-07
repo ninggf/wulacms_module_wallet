@@ -49,6 +49,40 @@ class Wallet {
 	}
 
 	/**
+	 * 项目
+	 * @return array
+	 */
+	public static function subjects(): array {
+		if (!self::$subjects) {
+			self::$walletConf = ConfigurationLoader::loadFromFile('wallet');
+			$cfg              = self::$walletConf->toArray();
+			$subjects         = $cfg['subjects'] ?? [];
+			if (!is_array($subjects)) {
+				$subjects = [
+					'despoit'  => [
+						'name'   => '充值',
+						'income' => 1,
+						'outlay' => 0
+					],
+					'withdraw' => [
+						'name'   => '提现',
+						'outlay' => 1,
+						'income' => 0
+					],
+					'exchange' => [
+						'name'   => '兑换',
+						'outlay' => 1,
+						'income' => 1
+					]
+				];
+			}
+			self::$subjects = $subjects;
+		}
+
+		return self::$subjects;
+	}
+
+	/**
 	 * 连接用户钱包.
 	 *
 	 * @param int $userid 用户ID
@@ -60,22 +94,7 @@ class Wallet {
 	public static function connect(int $userid): Wallet {
 		static $wallets = [];
 		if (self::$walletConf === null) {
-			self::$walletConf = ConfigurationLoader::loadFromFile('wallet');
-			$subjects         = self::$walletConf['subjects'] ?? [];
-			if (!is_array($subjects)) {
-				$subjects = [];
-			}
-			self::$subjects = array_merge([
-				'despoit'  => [
-					'name' => '充值'
-				],
-				'withdraw' => [
-					'name' => '提现'
-				],
-				'exchange' => [
-					'name' => '兑换'
-				]
-			], $subjects);
+			self::subjects();
 		}
 
 		if (!isset($wallets[ $userid ])) {

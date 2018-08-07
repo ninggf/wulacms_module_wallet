@@ -8,8 +8,6 @@ use wallet\classes\Currency;
 use wallet\classes\form\WithdrawRefuseForm;
 use wallet\classes\model\WalletWithdrawOrder;
 use wallet\classes\Wallet;
-use wulaphp\app\App;
-use wulaphp\conf\ConfigurationLoader;
 use wulaphp\io\Ajax;
 
 /**
@@ -23,18 +21,19 @@ class WithdrawController extends IFramePageController {
 	private $groups = ['P' => '申请中', 'R' => '拒绝', 'A' => '审核通过', 'D' => '已付款'];
 
 	/**
+	 * @param string $currency
+	 *
 	 * @return \wulaphp\mvc\view\View
 	 * @throws \Exception
 	 */
-	public function index() {
+	public function index(string $currency) {
 		$data['groups']   = $this->groups;
-		$cfg              = ConfigurationLoader::loadFromFile('currency');
-		$data['currency'] = $cfg->toArray();
+		$data['currency'] = $currency;
 
 		return $this->render($data);
 	}
 
-	public function data() {
+	public function data($currency) {
 		$table = new WalletWithdrawOrder();
 		$query = $table->select()->page()->sort();
 
@@ -54,18 +53,16 @@ class WithdrawController extends IFramePageController {
 		if ($end_time) {
 			$where['create_time <'] = strtotime($end_time);
 		}
-		$currency = rqst('currency');
-		if ($currency != '') {
-			$where['currency'] = $currency;
-		}
+		$where['currency'] = $currency;
 		if ($q) {
 			$where['user_id'] = $q;
 		}
 		$query->where($where);
 		$rows = $query->toArray();
+		$cur  = Currency::init($currency);
 		foreach ($rows as &$row) {
 			$row['status_th'] = $this->groups[ $row['status'] ];
-			$cur = Currency::init($row['currency']);
+
 			$row['amount'] = $cur->fromUint($row['amount']);
 		}
 		//权限设置
@@ -119,11 +116,11 @@ class WithdrawController extends IFramePageController {
 		$ret    = false;
 		//审核信息
 		if ($status == 'A') {
-			$ret      = $wallet->approve($currency, $row['id'], $status, $this->passport->uid);
+			$ret = $wallet->approve($currency, $row['id'], $status, $this->passport->uid);
 		}
 		//支付
-		if($status=='D'){
-			$ret = $wallet->pay($currency,$row['id'],$this->passport->uid,'alipay','123');
+		if ($status == 'D') {
+			$ret = $wallet->pay($currency, $row['id'], $this->passport->uid, 'alipay', '123');
 		}
 		if ($ret) {
 			return Ajax::reload('#table', $op_zh . '操作成功');

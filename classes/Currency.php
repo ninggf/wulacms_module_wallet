@@ -12,6 +12,18 @@ namespace wallet\classes;
 
 use wulaphp\conf\ConfigurationLoader;
 
+/**
+ * Class Currency
+ * @package wallet\classes
+ * @property-read string $name     名称
+ * @property-read string $id       ID
+ * @property-read string $symbol   符号
+ * @property-read int    $withdraw 是否可以提现
+ * @property-read array  $types    收入类型
+ * @property-read int    $decimals 精度
+ * @property-read int    $scale    小数位数
+ * @property-read int    $rate     与标准币兑换比例（一个标准币可以兑换多少个当前币）
+ */
 class Currency implements \ArrayAccess {
 	protected static $currencyConf;
 	protected static $currencies = [];
@@ -68,7 +80,7 @@ class Currency implements \ArrayAccess {
 		$this->id                 = $currency;
 		$this->myConf             = array_merge([
 			'name'     => $currency,
-			'symbol'   => strtolower($currency),
+			'symbol'   => strtoupper($currency),
 			'withdraw' => 0,
 			'decimals' => 3,
 			'scale'    => 6,
@@ -105,12 +117,21 @@ class Currency implements \ArrayAccess {
 	 */
 	public function fromUint(string $value, int $scale = null): string {
 		if (!$this->realdec) return $value;
-		if (!preg_match('/^([1-9]\d*)$/', $value)) return '0';
+		if (!preg_match('/^-?([1-9]\d*)$/', $value)) return '0';
 		$scale = $scale ?? $this->scale;
-		$amount =  bcdiv($value, $this->realdec, $scale);
-		if (strpos($amount, '.') > 0) {
-			$amount = rtrim(rtrim($amount, '0'), '.');
+		if ($value < 0) {
+			$amount = bcdiv(bcmul($value, '-1'), $this->realdec, $scale);
+			if (strpos($amount, '.') > 0) {
+				$amount = rtrim(rtrim($amount, '0'), '.');
+			}
+			$amount = '-' . $amount;
+		} else {
+			$amount = bcdiv($value, $this->realdec, $scale);
+			if (strpos($amount, '.') > 0) {
+				$amount = rtrim(rtrim($amount, '0'), '.');
+			}
 		}
+
 		return $amount;
 	}
 
@@ -145,6 +166,10 @@ class Currency implements \ArrayAccess {
 		}
 
 		return null;
+	}
+
+	public function __get(string $name) {
+		return $this->myConf[ $name ] ?? null;
 	}
 
 	public function offsetExists($offset) {
