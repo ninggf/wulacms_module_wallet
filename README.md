@@ -9,7 +9,7 @@
     ```php
        return [
            'dbMap'=> function($user_id){ return 'default'; },
-           'tableMap'=> function($table,$currency,$user_id){ return $table; }
+           'tableMap'=> function($table,$currency,$user_id){ return $table; },
            'subjects'=>[
                'deposit'=>[
                    'name'=>'充值'
