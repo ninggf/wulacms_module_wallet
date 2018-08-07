@@ -40,7 +40,7 @@ use wulaphp\conf\ConfigurationLoader;
 class ExchangeController extends IFramePageController {
 
 	public function index() {
-		$data['currency'] = ConfigurationLoader::loadFromFile('currency')->toArray();
+		$data['currency'] = Currency::currencies();
 
 		return $this->render($data);
 	}
@@ -75,9 +75,9 @@ class ExchangeController extends IFramePageController {
 			$from_cur        = Currency::init($row['from_currency']);
 			$to_cur          = Currency::init($row['to_currency']);
 			$row['discount'] = ($row['discount']/10000*100).'%';
-			$row['amount']   = $from_cur->fromUint($row['amount']).$row['from_currency'];
-			$row['total']    = $from_cur->fromUint($row['total']).$row['from_currency'];
-			$row['amount1']  = $to_cur->fromUint($row['amount1']).$row['to_currency'];
+			$row['amount']   = $from_cur->fromUint($row['amount']).$from_cur->symbol;
+			$row['total']    = $from_cur->fromUint($row['total']).$from_cur->symbol;
+			$row['amount1']  = $to_cur->fromUint($row['amount1']).$to_cur->symbol;
 		}
 		$data['rows']  = $rows;
 		$data['total'] = $total;

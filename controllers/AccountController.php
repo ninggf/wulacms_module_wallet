@@ -13,13 +13,11 @@ namespace wallet\controllers;
 use backend\classes\IFramePageController;
 use wallet\classes\Currency;
 use wallet\classes\model\Wallet;
-use wulaphp\conf\ConfigurationLoader;
 use wulaphp\io\Response;
 
 class AccountController extends IFramePageController {
 	public function index($cur) {
-		$cfg              = ConfigurationLoader::loadFromFile('currency');
-		$curs             = $cfg->toArray();
+		$curs             = Currency::currencies();
 		$data['currency'] = $cur;
 		if (!isset($curs[ $cur ])) {
 			Response::respond(404, $cur . ' not found');

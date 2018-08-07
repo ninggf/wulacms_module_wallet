@@ -23,46 +23,6 @@ class WalletTest extends TestCase {
 	private static $db;
 
 	public static function setUpBeforeClass() {
-		$cfg = ConfigurationLoader::loadFromFile('currency');
-		$cfg->setConfigs([
-			'EOS' => [
-				'name'     => 'EOSx',
-				'symbol'   => 'eos',
-				'withdraw' => 1,
-				'decimals' => 3,
-				'scale'    => 6,
-				'rate'     => 1000,
-				'types'    => [
-					'test'    => [
-						'name' => '签到'
-					],
-					'reward'  => [
-						'name'     => '奖励',
-						'withdraw' => true
-					],
-					'fromETH' => [
-						'name' => '兑换'
-					]
-				]//收入类型
-			],
-			'ETH' => [
-				'name'     => 'eth',
-				'symbol'   => 'eth',
-				'withdraw' => 1,
-				'decimals' => 3,
-				'scale'    => 6,
-				'rate'     => 100,
-				'types'    => [
-					'deposit' => [
-						'name'     => '充值',
-						'withdraw' => 1
-					],
-					'fromEOS' => [
-						'name' => 'EOS兑换'
-					]
-				]//收入类型
-			]
-		]);
 		$wcfg = ConfigurationLoader::loadFromFile('wallet');
 		$wcfg->setConfigs([
 			'dbMap'    => function ($uid) {
@@ -92,6 +52,45 @@ class WalletTest extends TestCase {
 				],
 				'buy'      => [
 					'name' => '购买'
+				]
+			],
+			'currency' => [
+				'EOS' => [
+					'name'     => 'EOSx',
+					'symbol'   => 'eos',
+					'withdraw' => 1,
+					'decimals' => 3,
+					'scale'    => 6,
+					'rate'     => 1000,
+					'types'    => [
+						'test'    => [
+							'name' => '签到'
+						],
+						'reward'  => [
+							'name'     => '奖励',
+							'withdraw' => true
+						],
+						'fromETH' => [
+							'name' => '兑换'
+						]
+					]//收入类型
+				],
+				'ETH' => [
+					'name'     => 'eth',
+					'symbol'   => 'eth',
+					'withdraw' => 1,
+					'decimals' => 3,
+					'scale'    => 6,
+					'rate'     => 100,
+					'types'    => [
+						'deposit' => [
+							'name'     => '充值',
+							'withdraw' => 1
+						],
+						'fromEOS' => [
+							'name' => 'EOS兑换'
+						]
+					]//收入类型
 				]
 			]
 		]);

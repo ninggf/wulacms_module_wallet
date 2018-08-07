@@ -43,7 +43,7 @@ class Currency implements \ArrayAccess {
 			return self::$currencies[ $currency ];
 		}
 		if (!self::$currencyConf) {
-			self::$currencyConf = ConfigurationLoader::loadFromFile('currency')->toArray();
+			self::$currencyConf = ConfigurationLoader::loadFromFile('wallet')->geta('currency');
 		}
 		if (!isset(self::$currencyConf[ $currency ])) {
 			return null;
@@ -60,7 +60,7 @@ class Currency implements \ArrayAccess {
 	 */
 	public static function currencies(): array {
 		if (!self::$currencyConf) {
-			self::$currencyConf = ConfigurationLoader::loadFromFile('currency')->toArray();
+			self::$currencyConf = ConfigurationLoader::loadFromFile('wallet')->geta('currency');
 		}
 
 		foreach (self::$currencyConf as $cur => $cfg) {

@@ -5,8 +5,6 @@ namespace wallet\controllers;
 use backend\classes\IFramePageController;
 use wallet\classes\Currency;
 use wallet\classes\model\Wallet;
-use wallet\classes\model\WalletOutlayLog;
-use wulaphp\conf\ConfigurationLoader;
 
 /**
  * 默认控制器.
@@ -17,8 +15,7 @@ class IndexController extends IFramePageController {
 	 * 默认控制方法.
 	 */
 	public function index() {
-		$cfg = ConfigurationLoader::loadFromFile('currency');
-		$data['currency'] = $cfg->toArray();
+		$data['currency'] = Currency::currencies();
 		$data['type'] = array_keys($data['currency'])[0];
 		return $this->render($data);
 	}

@@ -11,7 +11,7 @@
                     </li>
                     {foreach $currency as $k=>$cur}
                         <li>
-                            <a href="javascript:;" rel="{$k}" > {$k}</a>
+                            <a href="javascript:;" rel="{$k}" > {$cur['name']}</a>
                         </li>
                     {/foreach}
                 </ul>
