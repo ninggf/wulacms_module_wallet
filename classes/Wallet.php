@@ -134,7 +134,8 @@ class Wallet {
 				if ($account) {
 					return true;
 				} else {
-					$rst = $db->cudx('INSERT INTO {wallet} (user_id,currency) VALUES (%d,%s)', $this->uid, $currency);
+					$time = time();
+					$rst  = $db->cudx('INSERT INTO {wallet} (user_id,currency,create_time,update_time) VALUES (%d,%s,%s,%s)', $this->uid, $currency, $time, $time);
 					if ($rst) {
 						return true;
 					}

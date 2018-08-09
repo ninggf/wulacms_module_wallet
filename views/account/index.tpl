@@ -23,13 +23,13 @@
                     <th width="20">
                         <input type="checkbox" class="grp"/>
                     </th>
-                    <th width="50" data-sort="user_id,d">UID</th>
-                    <th width="100" data-sort="amount,a">总额</th>
-                    <th width="100" data-sort="balance,a">余额</th>
-                    <th width="100" data-sort="balance1,a">可提现</th>
-                    <th width="100">冻结</th>
-                    <th width="100">创建时间</th>
-                    <th width="150">操作</th>
+                    <th width="100" data-sort="user_id,d">UID</th>
+                    <th data-sort="amount,a">总额</th>
+                    <th width="120" data-sort="balance,a">余额</th>
+                    <th width="120" data-sort="balance1,a">可提现</th>
+                    <th width="120">冻结</th>
+                    <th width="150">创建时间</th>
+                    <th width="100"></th>
                 </tr>
                 </thead>
             </table>
