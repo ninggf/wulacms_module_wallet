@@ -23,6 +23,7 @@ use wulaphp\conf\ConfigurationLoader;
  * @property-read int    $decimals 精度
  * @property-read int    $scale    小数位数
  * @property-read int    $rate     与标准币兑换比例（一个标准币可以兑换多少个当前币）
+ * @property-read array  $conf     配置信息
  */
 class Currency implements \ArrayAccess {
 	protected static $currencyConf;
@@ -169,6 +170,10 @@ class Currency implements \ArrayAccess {
 	}
 
 	public function __get(string $name) {
+		if ($name == 'conf') {
+			return $this->myConf;
+		}
+
 		return $this->myConf[ $name ] ?? null;
 	}
 
