@@ -159,24 +159,28 @@ class Wallet {
 	 * @param \wallet\classes\Currency $currency  币种
 	 * @param string                   $amount    数量
 	 * @param string                   $type      类型
-	 * @param string                   $subject   主题，最多16个字符（数字，字母，下划线，中划线）
-	 * @param string                   $subjectid 主题ID，最多48个字符（数字，字母，下划线，中划线）
+	 * @param string                   $subject   主题或主题ID，最多16个字符（数字，字母，下划线，中划线）
+	 * @param string|null              $subjectid 主题ID，最多48个字符（数字，字母，下划线，中划线）
 	 *
 	 * @return bool
 	 * @throws \wallet\classes\exception\WalletException
 	 */
-	public function deposit(Currency $currency, string $amount, string $type, string $subject, string $subjectid): bool {
+	public function deposit(Currency $currency, string $amount, string $type, string $subject, ?string $subjectid = null): bool {
 		//检查类型
 		$typeCfg = $currency->checkType($type);
 		if (!$typeCfg) throw new WalletException('未知的收入类型:' . $type);
-
+		//使用配置主题
+		if ($subjectid == null) {
+			$subjectid = $subject;
+			$subject   = $typeCnf['subject'] ?? false;
+		}
 		//转换到最小面值单位
 		$ramount = $currency->toUint($amount);
 		if ($ramount === null) throw new WalletException('充值金额不正确:' . $amount);
 		//检查主题
 		if (!preg_match('/^[a-z][\w\d\-_]{0,15}$/i', $subject)) throw new WalletException('subject格式不正确:' . $subject);
 		if (!preg_match('/^[a-z0-9][a-z\d\-_]{0,47}$/i', $subject)) throw new WalletException('subjectid格式不正确:' . $subjectid);
-		if (!isset(self::$subjects[ $subject ])) throw new WalletException('未定义的主题:' . $subject);
+		if (!isset(self::$subjects[ $subject ])) throw new WalletException('未定义的subject:' . $subject);
 
 		try {
 			if (!$this->walletdb->start()) {
@@ -580,7 +584,7 @@ class Wallet {
 	 * @return null|string
 	 * @throws
 	 */
-	public function exchange(Currency $currencyForm, Currency $currencyTo, string $amount, float $discount = 1): ?string {
+	public function exchange(Currency $currencyForm, Currency $currencyTo, string $amount, float $discount = 1.0): ?string {
 		$ramount = $currencyForm->exchangeAmount($currencyTo, $amount);
 		if (!$ramount || $discount > 1 || $discount <= 0) {
 			return null;
