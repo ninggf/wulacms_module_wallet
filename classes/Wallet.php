@@ -341,11 +341,12 @@ class Wallet {
      * @param string                   $user_name
      * @param string                   $bank_name
      * @param string                   $bank_account
+     * @param string                   $channel
      *
      * @return string 提现编号
      * @throws \wallet\classes\exception\WalletException
      */
-    public function withdraw(Currency $currency, string $amount, string $user_name, string $bank_name, string $bank_account,string $channel=''): ?string {
+    public function withdraw(Currency $currency, string $amount, string $user_name, string $bank_name, string $bank_account, string $channel = ''): ?string {
         if (!$currency['withdraw']) {
             throw new WalletException('不可提现的币种:' . $currency['id']);
         }
@@ -384,10 +385,10 @@ class Wallet {
             $withdraw['create_uid']   = 0;
             $withdraw['create_time']  = time();
             $withdraw['create_time']  = time();
-            if($channel){
-	            $withdraw['channel'] = $channel;
+            if ($channel) {
+                $withdraw['channel'] = $channel;
             }
-            $withdraw['ip']           = Request::getIp();
+            $withdraw['ip'] = Request::getIp();
             //SQL
             $withdrawTable = $this->realtb('wallet_withdraw_order', $currency['id']);
             $sql           = $this->walletdb->insert($withdraw)->into($withdrawTable);
@@ -505,7 +506,7 @@ class Wallet {
      * @throws \wallet\classes\exception\WalletLockedException
      * @throws \wallet\classes\exception\WalletException
      */
-    public function pay(Currency $currency, string $withdrawId, string $uid, string $channel,string $account): bool {
+    public function pay(Currency $currency, string $withdrawId, string $uid, string $channel, string $account): bool {
         try {
             if (!$this->walletdb->start()) {
                 return null;
@@ -524,16 +525,16 @@ class Wallet {
                 throw new WalletException('可支付的提现申请记录不存在:' . $withdrawId);
             }
             $payChannel = Pay::getChannel($channel);
-            if(!$payChannel){
-	            throw new WalletException('提现申请已变更:' . $withdrawId);
+            if (!$payChannel) {
+                throw new WalletException('提现申请已变更:' . $withdrawId);
             }
-            if($payChannel->validate($account)){
-	            $txid = $payChannel->pay($account,$withdraw);
-            }else{
-	            $txid = false;
+            if ($payChannel->validate($account)) {
+                $txid = $payChannel->pay($account, $withdraw);
+            } else {
+                $txid = false;
             }
-            if(!$txid){
-	            throw new WalletException('提现失败:' . $payChannel->last_error());
+            if (!$txid) {
+                throw new WalletException('提现失败:' . $payChannel->last_error());
             }
             $data['status']   = 'D';
             $data['channel']  = $channel;
