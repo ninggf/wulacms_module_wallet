@@ -9,46 +9,57 @@
  */
 
 namespace wallet\pay;
+
+use wallet\classes\model\WalletPayAccount;
+use wulaphp\form\FormTable;
+
 /**
  * 支付渠道基类.
  *
  * @package wallet\pay
  */
 abstract class PayChannel {
+	protected $error   = null;
+	protected $account = [];
+
+	public function last_error(): ?string {
+		return $this->error;
+	}
+
 	/**
-	 * 充值渠道ID.
+	 * 支付渠道ID.
 	 *
 	 * @return string
 	 */
 	public abstract function getId(): string;
 
 	/**
-	 * 充值通道名称
+	 * 支付通道名称
 	 * @return string
 	 */
 	public abstract function getName(): string;
 
 	/**
-	 * 对账.
-	 *
-	 * @param array $order
-	 *
-	 * @return bool
+	 * 根据渠道获取一个账号信息
+	 * @return array
 	 */
-	public abstract function check(array $order): bool;
+	public function getAccounts(string $account): array {
+		$id       = $this->getId();
+		$model    = new WalletPayAccount();
+		$accounts = $model->find(['channel' => $id, 'account' => $account, 'status' => 1, 'deleted' => 0])->ary();
+		$accounts = $accounts ? $accounts : [];
+		if ($accounts) {
+			$this->account = @json_decode($accounts['options'], true);
+		}
 
-	/**
-	 * 获取支付URL.
-	 *
-	 * @param array $data
-	 *
-	 * @return string
-	 */
-	public abstract function getPayURL(array $data): string;
+		return $accounts;
+	}
 
-	/**
-	 * 是否有效
-	 * @return bool
-	 */
-	public abstract function isValid(): bool;
+	public function getConfigForm(): ?FormTable {
+		return null;
+	}
+
+	public abstract function pay(string $account, array $withdraw_info): string;
+
+	public abstract function validate($account): bool;
 }

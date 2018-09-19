@@ -28,6 +28,7 @@ class WalletModule extends CmfModule {
 
 	public function getVersionList() {
 		$v['1.0.0'] = '开始啦';
+		$v['1.0.1'] = '支付渠道&账号添加';
 
 		return $v;
 	}
@@ -94,6 +95,12 @@ class WalletModule extends CmfModule {
 			$page6->iconCls     = 'alicon';
 			$page6->iconStyle   = 'color:orange';
 			$page6->data['url'] = App::url('wallet/exchange');
+
+			$page7              = $app->getMenu('paychannel', '支付渠道');
+			$page7->icon        = '&#xe624;';
+			$page7->iconCls     = 'alicon';
+			$page7->iconStyle   = 'color:red';
+			$page7->data['url'] = App::url('wallet/paychannel');
 		}
 	}
 
@@ -118,6 +125,11 @@ class WalletModule extends CmfModule {
 		$res->addOperate('approve', '审核');
 		$res->addOperate('pay', '支付');
 		$res->addOperate('refuse', '拒绝');
+		$res = $mgr->getResource('wallet/paychannel', '支付渠道', 'm');
+		$res->addOperate('account_edit', '修改账号');
+		$res->addOperate('account_del', '删除账号');
+		$res->addOperate('account_active', '激活账号');
+		$res->addOperate('account_add', '添加账号');
 	}
 }
 

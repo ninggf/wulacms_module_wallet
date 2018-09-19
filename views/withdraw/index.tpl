@@ -65,7 +65,7 @@
                         <th width="100">用户实名</th>
                         <th width="60">提现状态</th>
                         <th width="100" data-sort="create_time,d">创建时间</th>
-                        <th width="100">操作</th>
+                        <th width="80">操作</th>
                     </tr>
                     </thead>
                 </table>
@@ -103,6 +103,12 @@
 			};
 		}).on('before.dialog', '.edit-task', function (e) {
 			e.options.btn = ['保存', '取消'];
+			e.options.yes = function () {
+				$('#edit-refuse-form').data('dialogId', layer.index).submit();
+				return false;
+			};
+		}).on('before.dialog', '.edit-pay', function (e) {
+			e.options.btn = ['立即支付', '取消'];
 			e.options.yes = function () {
 				$('#edit-refuse-form').data('dialogId', layer.index).submit();
 				return false;

@@ -10,6 +10,7 @@
 
 namespace wallet\classes;
 
+use wallet\classes\exception\WalletException;
 use wulaphp\conf\ConfigurationLoader;
 
 /**
@@ -167,6 +168,55 @@ class Currency implements \ArrayAccess {
 		}
 
 		return null;
+	}
+
+	/**
+	 * 充值（添加收入）
+	 *
+	 * @param \wallet\classes\Wallet $wallet
+	 * @param string                 $amount
+	 * @param string                 $type
+	 * @param string                 $subjectId
+	 *
+	 * @return bool
+	 * @throws \wallet\classes\exception\WalletException
+	 */
+	public function deposit(Wallet $wallet, string $amount, string $type, string $subjectId): bool {
+		$typeCnf = $this->checkType($type);
+		if (!$typeCnf) throw new WalletException('未知的收入类型:' . $type);;
+		$subject = $typeCnf['subject'] ?? false;
+		if (!$subject) throw new WalletException($type . '未配置subject');
+
+		return $wallet->deposit($this, $amount, $type, $subject, $subjectId);
+	}
+
+	/**
+	 * 支出(消费)
+	 *
+	 * @param \wallet\classes\Wallet $wallet
+	 * @param string                 $amount
+	 * @param string                 $subject
+	 * @param string                 $subjectid
+	 *
+	 * @return bool
+	 * @throws \wallet\classes\exception\WalletException
+	 */
+	public function outlay(Wallet $wallet, string $amount, string $subject, string $subjectid): bool {
+		return $wallet->outlay($this, $amount, $subject, $subjectid);
+	}
+
+	/**
+	 * @param \wallet\classes\Wallet   $wallet
+	 * @param \wallet\classes\Currency $currencyTo
+	 * @param string                   $amount
+	 * @param float                    $discount
+	 *
+	 * @return null|string
+	 * @throws \wallet\classes\exception\WalletException
+	 * @throws \wallet\classes\exception\WalletLockedException
+	 */
+	public function exchange(Wallet $wallet, Currency $currencyTo, string $amount, float $discount = 1.0): ?string {
+		return $wallet->exchange($this, $currencyTo, $amount, $discount);
 	}
 
 	public function __get(string $name) {

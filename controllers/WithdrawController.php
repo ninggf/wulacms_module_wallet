@@ -5,9 +5,13 @@ namespace wallet\controllers;
 use backend\classes\IFramePageController;
 use backend\form\BootstrapFormRender;
 use wallet\classes\Currency;
+use wallet\classes\exception\WalletException;
+use wallet\classes\form\AccountForm;
 use wallet\classes\form\WithdrawRefuseForm;
+use wallet\classes\model\WalletPayAccount;
 use wallet\classes\model\WalletWithdrawOrder;
 use wallet\classes\Wallet;
+use wallet\pay\Pay;
 use wulaphp\io\Ajax;
 
 /**
@@ -120,13 +124,65 @@ class WithdrawController extends IFramePageController {
 		}
 		//支付
 		if ($status == 'D') {
-			$ret = $wallet->pay($currency, $row['id'], $this->passport->uid, 'alipay', '123');
+			//根据渠道进行支付
+			$ret = $wallet->pay($currency, $row['id'], $this->passport->uid, '', '');
 		}
 		if ($ret) {
 			return Ajax::reload('#table', $op_zh . '操作成功');
 		} else {
 			return Ajax::error($op_zh . '操作失败!');
 		}
+	}
+
+	public function account($id) {
+		$wid = (int)$id;
+		$mod = new WalletWithdrawOrder();
+		$row = $mod->get($wid)->ary();
+		if ($id) {
+			$model                = new WalletPayAccount();
+			$data['account']      = $model->findAll(['channel' => $row['channel']], 'id,account')->toArray();
+			$Pay                  = Pay::getChannel($row['channel']);
+			$data['channel_name'] = $Pay->getName();
+		}
+		$data['id'] = $id;
+
+		return view($data);
+	}
+
+	/**
+	 * @param $id
+	 * @param $account
+	 *
+	 * @return \wulaphp\mvc\view\JsonView
+	 * @throws \wallet\classes\exception\WalletException
+	 */
+	public function pay($id, $account) {
+		//权限控制
+		$canPay = $this->passport->cando('pay:wallet/withdraw');
+		if (!$canPay) {
+			return Ajax::error('抱歉，你没有支付权限');
+		}
+		$wid = (int)$id;
+		if (!$wid || !$account) {
+			return Ajax::error('参数错误,请联系开发人员!');
+		}
+		$mod = new WalletWithdrawOrder();
+		$row = $mod->get($wid)->ary();
+		if (!$row['amount']) {
+			return Ajax::error('记录不存在,请刷新后重试!');
+		}
+		//初始化钱包 币种
+		$wallet   = Wallet::connect($row['user_id']);
+		$currency = $wallet->open($row['currency']);
+		try {
+			$rst = $wallet->pay($currency, $id, $row['user_id'], $row['channel'], $account);
+			if ($rst) {
+				return Ajax::reload('#table', '支付操作成功');
+			}
+		} catch (WalletException $e) {
+			return Ajax::error($e->getMessage());
+		}
+
 	}
 
 	/**
@@ -174,6 +230,7 @@ class WithdrawController extends IFramePageController {
 		$ret      = $wallet->approve($currency, $wid, 'R', $this->passport->uid, trim(rqst('msg')));
 
 		if ($ret) {
+		    fire('wallet\refuseWithdraw',$wid,$row['user_id'],$row['amount']);
 			return Ajax::success(['message' => '操作成功']);
 		} else {
 			return Ajax::error('操作失败!');

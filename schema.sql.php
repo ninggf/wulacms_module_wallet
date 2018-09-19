@@ -125,3 +125,20 @@ $tables['1.0.0'][] = "CREATE TABLE IF NOT EXISTS `wallet_exchange_log` (
     `create_uid` INT NOT NULL COMMENT '创建用户',
     PRIMARY KEY (`id`)
 )  ENGINE=INNODB CHARACTER SET={encoding} COMMENT='兑换记录表'";
+
+//支付账号表
+$tables['1.0.1'] = "CREATE TABLE IF NOT EXISTS `{prefix}wallet_pay_account` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `channel` varchar(50) NOT NULL COMMENT '渠道',
+  `account` varchar(50) NOT NULL COMMENT '账号',
+  `priority` int(10) NOT NULL DEFAULT '0' COMMENT '优先级',
+  `status` tinyint(2) NOT NULL DEFAULT '1' COMMENT '1正常0禁用',
+  `options` text,
+  `create_time` int(10) NOT NULL DEFAULT '0',
+  `update_time` int(10) NOT NULL DEFAULT '0',
+  `create_uid` int(11) NOT NULL DEFAULT '0',
+  `deleted` tinyint(2) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `U_ACCOUNT` (`account`),
+  KEY `IDX_CHANNEL` (`channel`)
+) ENGINE=InnoDB  DEFAULT CHARSET={encoding} COMMENT='支付账号表'";

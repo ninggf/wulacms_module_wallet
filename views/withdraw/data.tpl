@@ -14,7 +14,7 @@
         <td>{$item.user_name}</td>
         <td>{$item.status_th}</td>
         <td>{$item.create_time|date_format:'Y-m-d H:i:s'}</td>
-        <td>
+        <td class="text-right">
             {if $item.status=='P' && $canApprove}
                 <a href="{'wallet/withdraw/change/pass'|app}/{$item.id}" data-ajax data-confirm="确定『通过审核』吗?"
                    class="btn btn-xs btn-info" title="通过">通过</a>
@@ -25,8 +25,9 @@
                    class=" edit-task btn btn-xs btn-danger">拒绝</a>
             {/if}
             {if $item.status=='A' && $canPay}
-                <a href="{'wallet/withdraw/change/pay'|app}/{$item.id}" data-ajax data-confirm="你真的要『支付』吗?"
-                   class="btn btn-xs btn-warning" title="支付">支付</a>
+                <a href="{'wallet/withdraw/account'|app}/{$item.id}" data-ajax="dialog"
+                   data-title="选择渠道账号" data-area="400px,auto"
+                   class="edit-pay btn btn-xs btn-success">支付</a>
             {/if}
             {if $item.status=='R'}
                 已拒绝 :{$item.reject_msg}
