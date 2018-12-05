@@ -210,6 +210,7 @@ class Wallet {
             $sql          = $this->walletdb->insert($deposit)->into($depositTable);
             $rst          = $sql->exec(true);
             if (!$rst) {
+                log_error($sql->lastError(),'sql.err');
                 throw new WalletException('无法更新数据库表:' . $sql->lastError());
             }
             //汇总数据
@@ -228,6 +229,7 @@ class Wallet {
             ])->exec(true);
 
             if (!$rst) {
+                log_error($sql->lastError(),'sql.err');
                 throw new WalletException("无法更新数据库表(wallet)");
             }
 
@@ -867,11 +869,11 @@ class Wallet {
             if (!$rst) {
                 throw new WalletException('订单已入账');
             }
-
+            $this->walletdb->commit();
             //通知业务逻辑处理充值情况
-            fire('wallet\onDepositOrderConfirmed', $order);
+            fire('wallet\onDepositOrderConfirmed', array_merge($order,$data));
 
-            return $this->walletdb->commit();
+            return true;
         } catch (\Exception $e) {
             $this->walletdb->rollback();
 
