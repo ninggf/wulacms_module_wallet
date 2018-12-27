@@ -32,7 +32,6 @@ use EasyWeChat\Factory;
 use EasyWeChat\Kernel\Exceptions\Exception;
 use EasyWeChat\Kernel\Exceptions\InvalidConfigException;
 use wallet\deposit\DepositChannel;
-use weixin\classes\form\WeixinPaySettingForm;
 use wulaphp\app\App;
 
 class WeixinDeposit extends DepositChannel {
@@ -70,7 +69,6 @@ class WeixinDeposit extends DepositChannel {
         $this->app = $app;
         try {
             $response = $app->handlePaidNotify(function ($message, $fail) {
-                log_error(json_encode($message), 'jsapi_call');
                 if ($message['return_code'] === 'SUCCESS') {
                     // 用户是否支付成功
                     if ($message['result_code'] === 'SUCCESS') {
@@ -124,6 +122,15 @@ class WeixinDeposit extends DepositChannel {
 
     /**
      * 统一下单
+     *
+     * @param        $body
+     * @param        $order
+     * @param        $amount
+     * @param        $trade_type
+     * @param        $accid
+     * @param string $openid
+     *
+     * @return array|bool
      */
     private function createOrder($body, $order, $amount, $trade_type, $accid, $openid = '') {
         $data['body']         = $body;
@@ -186,12 +193,29 @@ class WeixinDeposit extends DepositChannel {
      * 查询第三方订单是否正常
      *
      * @param string $order_no
+     * @param int    $config_id
+     * @param int    $type 0交易号 1订单号
+     *
      *
      * @return bool
      */
-    public function queryOrder(string $order_no = '') {
+    public function queryOrder(string $order_no = '', int $type = 0, int $config_id = 0) {
+        if ($config_id) {
+            $config    = $this->getTypeConfig($config_id);
+            $app       = Factory::payment($config);
+            $this->app = $app;
+        }
+        if (!$this->app) {
+            $this->error = 'app未实例化';
+
+            return false;
+        }
         try {
-            $result = $this->app->order->queryByTransactionId($order_no);
+            if ($type == 0) {
+                $result = $this->app->order->queryByTransactionId($order_no);
+            } else {
+                $result = $this->app->order->queryByOutTradeNumber($order_no);
+            }
         } catch (InvalidConfigException $e) {
         }
         if (!empty($result['result_code']) && !empty($result['err_code'])) {
@@ -201,6 +225,8 @@ class WeixinDeposit extends DepositChannel {
             return false;
         }
         if ($result['result_code'] == 'SUCCESS' && $result['return_code'] == 'SUCCESS') {
+            $this->query_info = $result;
+
             return true;
         }
 
@@ -272,7 +298,7 @@ class WeixinDeposit extends DepositChannel {
 
     }
 
-    private function getTypeConfig(string $accid): array {
+    private function getTypeConfig(string $accid) {
         try {
             if (!$accid) {
                 return null;
@@ -286,13 +312,18 @@ class WeixinDeposit extends DepositChannel {
             if (!$acc) {
                 return null;
             }
-            $acc['app_id'] = $acc['appid'];
-            $this->config  = $acc;
+            $acc['app_id']  = $acc['appid'];
+            $this->config   = $acc;
+            $this->configId = $acc['id'];
         } catch (\Exception $e) {
             return null;
         }
 
         return $this->config;
+    }
+
+    public function getConfigId(): int {
+        return $this->configId;
     }
 
 }

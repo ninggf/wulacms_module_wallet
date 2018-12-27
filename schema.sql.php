@@ -142,3 +142,10 @@ $tables['1.0.1'] = "CREATE TABLE IF NOT EXISTS `{prefix}wallet_pay_account` (
   UNIQUE KEY `U_ACCOUNT` (`account`),
   KEY `IDX_CHANNEL` (`channel`)
 ) ENGINE=InnoDB  DEFAULT CHARSET={encoding} COMMENT='支付账号表'";
+
+//业务订单状态修改
+$tables['1.0.2'][] = "ALTER TABLE `{prefix}wallet_deposit_order` 
+MODIFY COLUMN `status` enum('P','R','A','E','C','D','S') CHARACTER SET {encoding} COLLATE {encoding}_general_ci NOT NULL COMMENT 'P:待付款；R:待对账；A：已入账；E：失败；C:关闭;D:待通知;S:通知完成' AFTER `tx_id`;";
+
+$tables['1.0.2'][] = "ALTER TABLE `{prefix}wallet_deposit_order` 
+ADD COLUMN `order_time` int(10) NOT NULL DEFAULT 0 COMMENT '通知订单成功时间' AFTER `status`;";

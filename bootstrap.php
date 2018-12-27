@@ -10,6 +10,7 @@ use wallet\deposit\Restoration;
 use wula\cms\CmfModule;
 use wulaphp\app\App;
 use wulaphp\auth\AclResourceManager;
+use wulaphp\db\DatabaseConnection;
 
 /**
  * wallet
@@ -32,8 +33,33 @@ class WalletModule extends CmfModule {
     public function getVersionList() {
         $v['1.0.0'] = '开始啦';
         $v['1.0.1'] = '支付渠道&账号添加';
+        $v['1.0.2'] = '通知业务订单状态添加';
 
         return $v;
+    }
+
+    /**
+     * @param \wulaphp\conf\Configuration $service
+     * @filter on_load_service_config
+     */
+    public static function onLoadService($service){
+
+        $service->set('services.confirm_order',[
+            'type'     => 'cron',
+            'script'   => App::getModule('wallet')->getPath('scripts/confirm_order.php',false),
+            'interval' => 20
+        ]);
+        $service->set('services.restoration',[
+            'type'     => 'cron',
+            'script'   => App::getModule('wallet')->getPath('scripts/restoration.php',false),
+            'interval' => 20
+        ]);
+
+        return $service;
+    }
+
+    protected function upgradeTo1_0_2(DatabaseConnection $db) {
+        return $db->cudx("UPDATE {wallet_deposit_order} SET status = %s,order_time = %s WHERE status=%s",'S',time(),'A');
     }
 
     public function getAuthor() {

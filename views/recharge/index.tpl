@@ -62,6 +62,7 @@
                         <th width="100">订单编号</th>
                         <th width="60">状态</th>
                         <th width="100" data-sort="create_time,d">充值时间</th>
+                        <th width="120"></th>
                     </tr>
                     </thead>
                 </table>

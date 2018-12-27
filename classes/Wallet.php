@@ -210,7 +210,7 @@ class Wallet {
             $sql          = $this->walletdb->insert($deposit)->into($depositTable);
             $rst          = $sql->exec(true);
             if (!$rst) {
-                log_error($sql->lastError(),'sql.err');
+                log_error($sql->lastError(), 'sql.err');
                 throw new WalletException('无法更新数据库表:' . $sql->lastError());
             }
             //汇总数据
@@ -229,7 +229,7 @@ class Wallet {
             ])->exec(true);
 
             if (!$rst) {
-                log_error($sql->lastError(),'sql.err');
+                log_error($sql->lastError(), 'sql.err');
                 throw new WalletException("无法更新数据库表(wallet)");
             }
 
@@ -751,12 +751,13 @@ class Wallet {
      * @param string                   $amount     金额
      * @param string                   $order_type 业务订单类型
      * @param string                   $order_id   订单编号
+     * @param string                   $channel    充值渠道
      * @param string                   $spm        充值来源追踪
      *
      * @return null|string 充值订单号
      * @throws \wallet\classes\exception\WalletException
      */
-    public function newDepositOrder(Currency $currency, string $amount, string $order_type, string $order_id, string $spm = ''): ?string {
+    public function newDepositOrder(Currency $currency, string $amount, string $order_type, string $order_id, string $channel, string $spm = ''): ?string {
         //转换到最小面值单位
         $ramount = $currency->toUint($amount);
         if ($ramount === null) throw new WalletException('充值金额不正确:' . $amount);
@@ -767,7 +768,7 @@ class Wallet {
         $data['order_type']  = $order_type;
         $data['order_id']    = $order_id;
         $data['status']      = 'P';//付付款
-        $data['channel']     = '';
+        $data['channel']     = $channel;
         $data['spm']         = $spm;
         $data['create_time'] = time();
         $data['create_uid']  = 0;
@@ -871,7 +872,26 @@ class Wallet {
             }
             $this->walletdb->commit();
             //通知业务逻辑处理充值情况
-            fire('wallet\onDepositOrderConfirmed', array_merge($order,$data));
+            $filter_res = apply_filter('wallet\onDepositOrderConfirmed', array_merge($order, $data));
+            if ($filter_res) {
+                $sql = $this->walletdb->update($depositTable)->set(['status' => 'S', 'order_time' => time()])->where([
+                    'id'     => $depositId,
+                    'status' => 'A'
+                ]);
+                $rst = $sql->exec(true);
+                if (!$rst) {
+                    throw new WalletException('订单通知成功,修改通知状态失败');
+                }
+            } else {
+                $sql = $this->walletdb->update($depositTable)->set(['status' => 'D'])->where([
+                    'id'     => $depositId,
+                    'status' => 'A'
+                ]);
+                $rst = $sql->exec(true);
+                if (!$rst) {
+                    throw new WalletException('订单通知失败,修改状态也失败了');
+                }
+            }
 
             return true;
         } catch (\Exception $e) {

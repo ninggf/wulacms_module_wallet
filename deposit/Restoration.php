@@ -27,36 +27,38 @@ class Restoration {
     }
 
     /**
-     * 对账
-     *
-     * @param $order_id
-     * @param $amount
-     * @param $channel
-     * @param $tx_id
+     * @param     $order_id
+     * @param     $amount
+     * @param     $channel
+     * @param     $tx_id
+     * @param int $confirm_type 0待支付对账
      *
      * @return bool
-     * @throws
+     * @throws \Exception
      */
-    public static function payConfirm($order_id, $amount, $channel, $tx_id): bool {
+    public static function payConfirm($order_id, $amount, $channel, $tx_id, $confirm_type = 0): bool {
         $lock_key = 'deposit_confirm_lock_' . $order_id;
         $lock     = RedisLock::ulock($lock_key);
         if ($lock) {
             try {
                 $depositModel = new WalletDepositOrder();
-                $order_info   = $depositModel->get(['order_id' => $order_id])->ary();
+                $order_info   = $depositModel->findOne(['order_id' => $order_id])->ary();
                 if (!$order_info) {
                     log_error($order_id . '订单号不存在', 'confirm_deposit_order');
 
                     return false;
                 }
-                $currency  = Currency::init($order_info['currency']);
-                $wallet    = Wallet::connect($order_info['user_id']);
+                $currency = Currency::init($order_info['currency']);
+                $wallet   = Wallet::connect($order_info['user_id']);
                 $wallet->open($order_info['currency']);
-                $pay_order = $wallet->payDepositOrder($currency, $order_info['id'], $amount, $channel, $tx_id);
-                if (!$pay_order) {
-                    log_error($order_id . '订单号充值失败', 'confirm_deposit_order');
+                //待支付对账 待对账不用走这个验证了
+                if (!$confirm_type) {
+                    $pay_order = $wallet->payDepositOrder($currency, $order_info['id'], $amount, $channel, $tx_id);
+                    if (!$pay_order) {
+                        log_error($order_id . '订单号充值失败', 'confirm_deposit_order');
 
-                    return false;
+                        return false;
+                    }
                 }
                 $confirm_order = $wallet->confirmDepositOrder($currency, $order_info['id'], $amount);
                 if (!$confirm_order) {
@@ -66,13 +68,14 @@ class Restoration {
                 }
 
                 return true;
-            }catch (WalletException $e){
-                log_error($e->getMessage(),'confirm_log');
+            } catch (WalletException $e) {
+                log_error($e->getMessage(), 'confirm_log');
             } finally {
                 RedisLock::uunlock($lock_key);
             }
         }
         log_error($order_id . '锁定', 'confirm_deposit_order');
+
         return false;
 
     }
@@ -91,7 +94,7 @@ class Restoration {
         if ($lock) {
             try {
                 $depositModel = new WalletDepositOrder();
-                $order_info   = $depositModel->get(['order_id' => $order_id])->ary();
+                $order_info   = $depositModel->findOne(['order_id' => $order_id])->ary();
                 if (!$order_info) {
                     log_error($order_id . '订单号不存在', 'confirm_deposit_order');
 

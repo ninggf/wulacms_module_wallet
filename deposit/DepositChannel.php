@@ -29,8 +29,10 @@
 namespace wallet\deposit;
 
 abstract class DepositChannel {
-    public $error = null;
+    public $error      = null;
     public $notify_url;
+    public $configId;//支付账号id
+    public $query_info = [];
 
     /**
      * 支付名称
@@ -76,11 +78,13 @@ abstract class DepositChannel {
     /**
      * 据订单号查询订单信息
      *
-     * @param $order_no
+     * @param string $order_no  订单号或者交易号
+     * @param int    $type      0回调第三方trans_id交易号 1标识系统订单号
+     * @param int    $config_id 账号id
      *
      * @return  boolean
      */
-    public abstract function queryOrder(string $order_no = '');
+    public abstract function queryOrder(string $order_no = '', int $type = 0, int $config_id = 0);
 
     /**
      * 参数校验
@@ -90,6 +94,12 @@ abstract class DepositChannel {
      * @return bool
      */
     public abstract function paramsCheck(array $data): bool;
+
+    /**
+     * 获取支付账号的ID
+     * @return int
+     */
+    public abstract function getConfigId(): int;
 
     /**
      * 错误信息

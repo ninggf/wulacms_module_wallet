@@ -58,19 +58,6 @@ class DepositChoose {
 
             return false;
         }
-        $wallet = Wallet::connect($mid);
-        try {
-            $createOrder = $wallet->newDepositOrder($currency, $amount, $order_type, $order);
-        } catch (exception\WalletException $e) {
-            $this->error = $e->getMessage();
-
-            return false;
-        }
-        if (!$createOrder) {
-            $this->error = '创建订单失败了';
-
-            return false;
-        }
         $payChannel = PayChannelManager::getChannel($channel);
         if (!$payChannel) {
             $this->error = $channel . '支付渠道不存在';
@@ -84,6 +71,25 @@ class DepositChoose {
         }
         if (!$rtn) {
             $this->error = $payChannel->error;
+
+            return false;
+        }
+        $configId = $payChannel->getConfigId();
+        if (!$configId) {
+            $this->error = '未获取到支付账号ID';
+
+            return false;
+        }
+        $wallet = Wallet::connect($mid);
+        try {
+            $createOrder = $wallet->newDepositOrder($currency, $amount, $order_type, $order, $channel, $channel . '.' . $configId);
+        } catch (exception\WalletException $e) {
+            $this->error = $e->getMessage();
+
+            return false;
+        }
+        if (!$createOrder) {
+            $this->error = '创建订单失败了';
 
             return false;
         }
