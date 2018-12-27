@@ -298,7 +298,8 @@ class WeixinDeposit extends DepositChannel {
 
     }
 
-    private function getTypeConfig(string $accid): array {
+
+    private function getTypeConfig(string $accid) {
         try {
             if (!$accid) {
                 return null;
